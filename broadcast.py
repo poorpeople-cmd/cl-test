@@ -14,7 +14,7 @@ if not stream_key:
 
 print(f"🚀 Target URL: {url}")
 
-# DrissionPage Options
+# DrissionPage Options (JS runtime error fix ke sath)
 co = ChromiumOptions()
 co.set_argument('--no-sandbox')
 co.set_argument('--disable-dev-shm-usage')
@@ -24,27 +24,57 @@ co.set_argument('--disable-software-rasterizer')
 co.set_argument('--disable-blink-features=AutomationControlled')
 co.auto_port()
 
-# Browser start karein (yeh JS runtime error ko khatam kar dega)
+# Browser start karein
 page = ChromiumPage(addr_or_opts=co)
 
 try:
     print("🌐 Website load ho rahi hai (bypassing Cloudflare)...")
     page.get(url)
 
-    # Cloudflare ko verify karne ke liye wait
-    time.sleep(6)
+    # Page load hone ke liye 5 seconds ka wait
+    time.sleep(5)
 
-    # Cloudflare checkbox click logic
-    try:
-        cf_frame = page.get_frame('@title=Widget containing a Cloudflare security challenge')
-        if cf_frame:
-            print("🛡️ Cloudflare box mila, click kar rahe hain...")
-            checkbox = cf_frame.ele('.cf-turnstile-wrapper')
-            if checkbox:
-                checkbox.click()
-                time.sleep(3)
-    except Exception as e:
-        print(f"ℹ️ Cloudflare check skipped/passed: {e}")
+    # 🛡️ SMART CLOUDFLARE TURNSTILE CLICKING LOGIC
+    print("🛡️ Cloudflare verification check ki ja rahi hai...")
+    clicked = False
+    
+    for attempt in range(3):
+        try:
+            # 1. Main page par checkbox ya text dhoondein
+            cb = page.ele('text:Verify you are human', timeout=2) or page.ele('.cf-turnstile', timeout=2)
+            if cb:
+                print("⚡ Main page par Cloudflare checkbox mila, click kar rahe hain...")
+                cb.click()
+                clicked = True
+                break
+            
+            # 2. Agar main page par na ho, toh sabhi iframes ke andar dhoondein
+            frames = page.get_frames()
+            for f in frames:
+                try:
+                    inner_cb = f.ele('text:Verify you are human', timeout=1) or f.ele('input[type="checkbox"]', timeout=1) or f.ele('.cf-turnstile-wrapper', timeout=1)
+                    if inner_cb:
+                        print("⚡ Iframe ke andar Cloudflare checkbox mila, click kar rahe hain...")
+                        inner_cb.click()
+                        clicked = True
+                        break
+                except:
+                    pass
+            
+            if clicked:
+                break
+                
+            print(f"⏳ Attempt {attempt+1}: Checkbox abhi load nahi hua, 3 seconds mazeed wait kar rahe hain...")
+            time.sleep(3)
+        except Exception as e:
+            print(f"⚠️ Attempt error: {e}")
+            time.sleep(2)
+
+    if clicked:
+        print("✅ Cloudflare checkbox par click ho gaya! Verify hone ka wait kar rahe hain...")
+        time.sleep(6) # Verify hone ke liye waqfa
+    else:
+        print("ℹ️ Cloudflare checkbox nahi mila ya khud-ba-khud bypass ho gaya hai.")
 
     print("\n✅ Page load ho gaya. Iframes scan ho rahe hain...\n")
 
