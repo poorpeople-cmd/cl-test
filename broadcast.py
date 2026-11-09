@@ -14,14 +14,17 @@ if not stream_key:
 
 print(f"🚀 Target URL: {url}")
 
-# DrissionPage Options (Linux / GitHub Actions ke liye zaroori flags)
+# DrissionPage Options
 co = ChromiumOptions()
 co.set_argument('--no-sandbox')
 co.set_argument('--disable-dev-shm-usage')
-co.set_argument('--window-size=1280,720')
+co.set_argument('--disable-gpu')
+co.set_argument('--remote-debugging-port=9222')
+co.set_argument('--disable-software-rasterizer')
+co.set_argument('--disable-blink-features=AutomationControlled')
 co.auto_port()
 
-# Browser start karein
+# Browser start karein (yeh JS runtime error ko khatam kar dega)
 page = ChromiumPage(addr_or_opts=co)
 
 try:
