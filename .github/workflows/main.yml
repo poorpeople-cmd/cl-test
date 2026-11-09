@@ -1,0 +1,49 @@
+name: DrissionPage Facebook Live
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Website URL (Jo stream karni hai)'
+        required: true
+        default: 'https://playsza.st/player.php?id=willow'
+        type: string
+      fb_stream_key:
+        description: 'Facebook Stream Key'
+        required: true
+        type: string
+      duration:
+        description: 'Stream ka time (Minutes mein)'
+        required: true
+        default: '30'
+        type: string
+
+jobs:
+  broadcast:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Chrome, FFmpeg & Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable ffmpeg xvfb
+
+      - name: Start Broadcast with Xvfb
+        env:
+          TARGET_URL: ${{ github.event.inputs.target_url }}
+          FB_STREAM_KEY: ${{ github.event.inputs.fb_stream_key }}
+          DURATION: ${{ github.event.inputs.duration }}
+        run: |
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" python broadcast.py
